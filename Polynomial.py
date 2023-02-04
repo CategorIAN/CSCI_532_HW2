@@ -1,5 +1,9 @@
 from functools import reduce
 from cmath import *
+import pandas as pd
+import random
+import timeit
+import time
 
 class Polynomial:
     def __init__(self, coeffs):
@@ -7,7 +11,7 @@ class Polynomial:
         self.deg = len(coeffs) - 1
 
     def __str__(self):
-        return str(self.coeffs)
+        return "Poly({})".format(self.coeffs)
 
     def __call__(self, x):
         return reduce(lambda r, a: r * x + a, reversed(self.coeffs[:self.deg]), self.coeffs[-1])
@@ -15,7 +19,7 @@ class Polynomial:
     def __mul__(self, Q):
         n = self.deg + Q.deg + 1
         (p, q) = (self.get(self.coeffs), self.get(Q.coeffs))
-        return [sum([p(j) * q(i-j) for j in range(self.deg + 1)]) for i in range(n)]
+        return Polynomial([sum([p(j) * q(i-j) for j in range(self.deg + 1)]) for i in range(n)])
 
     def get(self, l):
         def f(i):
@@ -70,6 +74,32 @@ class Polynomial:
         prod = [vw[0] * vw[1] for vw in zip(self.DFT(n, dec = dec), Q.DFT(n, dec = dec))]
         return Polynomial(Polynomial(prod).DFT(inv = True, dec = dec))
 
+    def mytime(self, function, args):
+        start = time.time()
+        function(*args)
+        return time.time() - start
+
+    def randomPoly(self, n):
+        return Polynomial([random.randint(-9, 9) for i in range(n)])
+
+    def checkCorrect(self):
+        df = pd.DataFrame(index = range(10), columns=["P", "Q", "P * Q (n^2)", "P * Q (DFT)"])
+        for i in df.index:
+            (P, Q) = (self.randomPoly(i + 1), self.randomPoly(i + 1))
+            df.loc[i, :] = [P, Q, P * Q, P.fast_mult(Q)]
+        df.to_csv("checkCorrect.csv")
+
+    def timeAnalysis(self):
+        start = time.time()
+        df = pd.DataFrame(index=range(500), columns=["n", "DFT Time (s)"])
+        for i in df.index:
+            n = i + 1
+            (P, Q) = (self.randomPoly(n), self.randomPoly(n))
+            P.fast_mult(Q)
+            t = self.mytime(P.fast_mult, (Q, 5))
+            df.loc[i, :] = [n, t]
+        df.to_csv("timeAnalysis.csv")
+        print("{} Seconds".format(time.time() - start))
 
 
 

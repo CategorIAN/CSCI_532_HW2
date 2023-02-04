@@ -25,9 +25,15 @@ def f(i):
         P = Polynomial([1, 1, 2])
         Q = Polynomial([-1, 1])
         print(P * Q)
+    if i == 7:
+        P = Polynomial([])
+        print(P.randomPoly(5))
+    if i == 8:
+        P = Polynomial([])
+        print(P.timeAnalysis())
 
 
 if __name__ == '__main__':
-    f(6)
+    f(8)
 
 
