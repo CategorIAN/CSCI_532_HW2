@@ -2,8 +2,8 @@ from functools import reduce
 from cmath import *
 import pandas as pd
 import random
-import timeit
 import time
+import numpy as np
 
 class Polynomial:
     def __init__(self, coeffs):
@@ -57,49 +57,49 @@ class Polynomial:
         n = Q.deg + 1
         def go(P, k):
             if P.deg == 0:
-                return [pow(1 / n, int(inv)) * v for v in n * P.coeffs]
+                return pow(1 / n, int(inv)) * P.coeffs[0] * np.ones(n)
             else:
                 (evenDFT, oddDFT) = (go(P.even(), 2 * k), go(P.odd(), 2 * k))
-                gen = self.rou(n, k)
-                x = 1
-                vals = []
-                for (v_even, v_odd) in zip(evenDFT, oddDFT):
-                    vals = vals + [self.cround(v_even + x * v_odd, dec)]
-                    x = x * gen
-                return vals
-        return go(Q, pow(-1, int(inv)) * 1)
+                W = np.vectorize(lambda i: self.rou(n, k * i))(np.array(range(n)))
+                return np.vectorize(lambda v: self.cround(v, dec))(evenDFT + W * oddDFT)
+        return go(Q, pow(-1, int(inv)))
 
     def fast_mult(self, Q, dec = 2):
         n = self.deg + Q.deg + 1
-        prod = [vw[0] * vw[1] for vw in zip(self.DFT(n, dec = dec), Q.DFT(n, dec = dec))]
-        return Polynomial(Polynomial(prod).DFT(inv = True, dec = dec))
+        prod = self.DFT(n, dec = dec) * Q.DFT(n, dec = dec)
+        coeffs = Polynomial(list(prod)).DFT(inv = True, dec = dec)
+        return Polynomial([round(c.real, 0) for c in coeffs])
 
-    def mytime(self, function, args):
-        start = time.time()
-        function(*args)
-        return time.time() - start
+    def mytime(self, function, args, trials = None):
+        def run():
+            start = time.time()
+            function(*args)
+            return time.time() - start
+        return run() if trials is None else sum([run() for t in range(trials)]) / trials
 
     def randomPoly(self, n):
         return Polynomial([random.randint(-9, 9) for i in range(n)])
 
-    def checkCorrect(self):
-        df = pd.DataFrame(index = range(10), columns=["P", "Q", "P * Q (n^2)", "P * Q (DFT)"])
+    def checkCorrect(self, size):
+        df = pd.DataFrame(index = range(size), columns=["P", "Q", "P * Q (n^2)", "P * Q (DFT)"])
         for i in df.index:
             (P, Q) = (self.randomPoly(i + 1), self.randomPoly(i + 1))
-            df.loc[i, :] = [P, Q, P * Q, P.fast_mult(Q)]
+            df.loc[i, :] = [P, Q, P * Q, P.fast_mult(Q, dec=5)]
         df.to_csv("checkCorrect.csv")
 
-    def timeAnalysis(self):
+    def timeAnalysis(self, size):
         start = time.time()
-        df = pd.DataFrame(index=range(500), columns=["n", "DFT Time (s)"])
+        df = pd.DataFrame(index=range(size // 50), columns=["n", "DFT Time (s)"])
         for i in df.index:
-            n = i + 1
+            print("-----------------------------------")
+            n = 50 * (i + 1)
+            print("n: {}".format(n))
             (P, Q) = (self.randomPoly(n), self.randomPoly(n))
-            P.fast_mult(Q)
-            t = self.mytime(P.fast_mult, (Q, 5))
+            t = self.mytime(P.fast_mult, (Q, 5), 5)
+            print("t: {} Seconds".format(t))
             df.loc[i, :] = [n, t]
         df.to_csv("timeAnalysis.csv")
-        print("{} Seconds".format(time.time() - start))
+        print("Total Time: {} Seconds".format(time.time() - start))
 
 
 
