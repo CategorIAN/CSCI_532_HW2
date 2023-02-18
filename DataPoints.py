@@ -16,7 +16,7 @@ class DataPoints:
         b = (sum(y) - a * sum(x)) / self.n
         return Line(a = a, b = b)
 
-    def error(self, i = 0, j = None):
+    def leastSquaresError(self, i = 0, j = None):
         j = None if j is None else self.n
         if i >= j:
             return 0
@@ -27,12 +27,19 @@ class DataPoints:
             return resids @ resids
 
     def errorMatrix(self):
-        return np.fromfunction(self.error, shape = (self.n, self.n), dtype = float)
+        return np.fromfunction(self.leastSquaresError, shape = (self.n, self.n), dtype = float)
 
     def segmentedLeastSquares(self, cost):
         em = self.errorMatrix()
-        optError = np.zeros(self.n)
-        for j in range(1, self.n):
-            optError[j] = min(pd.Series(range(j + 1)).map(lambda i: self.error(i, j) + cost + optError[i - 1]))
+
+        def dynamicUpdate(array, j):
+            def currentBest(ie, i):
+                ie_new = (i, em[i][j] + cost + array[i - 1][1])
+                return ie if ie[1] <= ie_new[1] else ie_new
+            (index, error) = reduce(currentBest, range(j + 1))
+            return array + [(index, error)]
+        tupleArray = reduce(dynamicUpdate, range(1, self.n), initializer = [(0, 0)])
+        (segmentArray, errorArray) = tuple(zip(*tupleArray))
+
 
 
