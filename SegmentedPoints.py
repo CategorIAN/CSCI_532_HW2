@@ -1,17 +1,21 @@
 from DataPoints import DataPoints
 import random
 import pandas as pd
+from functools import reduce
 
 class SegmentedPoints(DataPoints):
-    def __init__(self, size):
+    def __init__(self, size, breakProp = 0, sigma = 1, slopeSize = 1):
+        self.sigma = sigma
+        self.slopeSize = slopeSize
         xs = list(range(0, size))
-        k = random.randint(0, size - 1)
-        b = sorted(random.sample(xs[1:], k))
+        b = self.filter(xs[1:], breakProp)
+        print("b: {}".format(b))
         ys = self.generateYs(xs, [], 0, b)
         super().__init__(pd.DataFrame({'x': xs, 'y': ys}))
 
+
     def generateYs(self, xs, ys, start, breaks):
-        (a, b) = (random.choice(range(-9, 10)), random.choice(range(-9, 10)))
+        (a, b) = (random.randint(-1 * self.slopeSize, self.slopeSize), 0)
         if len(breaks) == 0:
             return self.getYs(xs, ys, a, b, start)
         else:
@@ -20,9 +24,15 @@ class SegmentedPoints(DataPoints):
 
     def getYs(self, xs, ys, a, b, start, end = None):
         if end is None:
-            return ys + [a * x + b + random.normalvariate(0, 1) for x in xs[start:]]
+            return ys + [a * x + b + random.normalvariate(0, self.sigma) for x in xs[start:]]
         else:
-            return ys + [a * x + b + random.normalvariate(0, 1) for x in xs[start:end]]
+            return ys + [a * x + b + random.normalvariate(0, self.sigma) for x in xs[start:end]]
+
+    def filter(self, xs, prob):
+        zs = [[x] if random.random() < prob else [] for x in xs]
+        return reduce(lambda l1, l2: l1 + l2, zs)
+
+
 
 
 

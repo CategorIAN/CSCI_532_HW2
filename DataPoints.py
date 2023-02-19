@@ -16,14 +16,14 @@ class DataPoints:
                                                                   self.df['y'].iloc[self.n - 1])
 
     def bestLine(self, i = 0, j = None):
-        j = None if j is None else self.n - 1
+        j = self.n - 1 if j is None else j
+        n = j - i + 1
         (x, y) = (np.array(self.df['x'].iloc[i:j + 1]), np.array(self.df['y'].iloc[i:j + 1]))
-        a = (self.n * x @ y - sum(x) * sum(y)) / (self.n * x @ x - sum(x) * sum(x))
-        b = (sum(y) - a * sum(x)) / self.n
+        a = (n * x @ y - sum(x) * sum(y)) / (n * x @ x - sum(x) * sum(x))
+        b = (sum(y) - a * sum(x)) / n
         return Line(a = a, b = b)
 
-    def leastSquaresError(self, i = 0, j = None):
-        j = None if j is None else self.n - 1
+    def leastSquaresError(self, i, j):
         if i >= j:
             return 0
         else:
@@ -57,16 +57,17 @@ class DataPoints:
 
     def segmentedLeastSquares(self, cost):
         def dynamicUpdate(array, j):
-            index_errors = [(i, em[i][j] + cost + array[i - 1][1]) for i in range(j + 1)]
+            index_errors = [(i, em[i][j] + cost + array[i][1]) for i in range(j + 1)]
             compareTuples = lambda t1, t2: t1 if t1[1] < t2[1] else t2
             (index, error) = reduce(compareTuples, index_errors)
             return array + [(index, error)]
 
         em = self.errorMatrix()
-        tupleArray = reduce(dynamicUpdate, range(1, self.n), [(0, 0)])
+        tupleArray = reduce(dynamicUpdate, range(self.n), [(-1, 0)])
         (segmentArray, errorArray) = tuple(zip(*tupleArray))
-        print("segmentArray: {}".format(segmentArray))
-        return PointPartition(self.recoverSegments(list(segmentArray)), errorArray[self.n - 1])
+        print("segmentArray: {}".format(list(segmentArray)[1:]))
+        print("errorArray: {}".format(list(errorArray)))
+        return PointPartition(self.recoverSegments(list(segmentArray)[1:]), errorArray[self.n])
 
 
 
