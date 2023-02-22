@@ -11,9 +11,10 @@ class DataPoints:
         self.n = df.shape[0]
 
     def __str__(self):
-        return "Points: [{}: ({}, {}), ... , {}: ({}, {})]".format(self.df.index[0], self.df['x'].iloc[0], self.df['y'].iloc[0],
-                                                                  self.df.index[self.n - 1], self.df['x'].iloc[self.n - 1],
-                                                                  self.df['y'].iloc[self.n - 1])
+        return "Points: [{}: ({}, {}), ... , {}: ({}, {})]".format(self.df.index[0], self.df['x'].iloc[0],
+                                                                   self.df['y'].iloc[0], self.df.index[self.n - 1],
+                                                                   self.df['x'].iloc[self.n - 1],
+                                                                   self.df['y'].iloc[self.n - 1])
 
     def bestLine(self, i = 0, j = None):
         j = self.n - 1 if j is None else j
@@ -57,17 +58,15 @@ class DataPoints:
 
     def segmentedLeastSquares(self, cost):
         def dynamicUpdate(array, j):
-            index_errors = [(i, em[i][j] + cost + array[i][1]) for i in range(j + 1)]
-            compareTuples = lambda t1, t2: t1 if t1[1] < t2[1] else t2
-            (index, error) = reduce(compareTuples, index_errors)
+            index_errors = [(i, errorMatrix[i][j] + cost + array[i][1]) for i in range(j + 1)]
+            minTuple = lambda t1, t2: t1 if t1[1] < t2[1] else t2
+            (index, error) = reduce(minTuple, index_errors)
             return array + [(index, error)]
 
-        em = self.errorMatrix()
+        errorMatrix = self.errorMatrix()
         tupleArray = reduce(dynamicUpdate, range(self.n), [(-1, 0)])
-        (segmentArray, errorArray) = tuple(zip(*tupleArray))
-        print("segmentArray: {}".format(list(segmentArray)[1:]))
-        print("errorArray: {}".format(list(errorArray)))
-        return PointPartition(self.recoverSegments(list(segmentArray)[1:]), errorArray[self.n])
+        (segmentArray, errorArray) = tuple([list(t)[1:] for t in tuple(zip(*tupleArray))])
+        return PointPartition(self.recoverSegments(segmentArray), errorArray[self.n - 1])
 
 
 

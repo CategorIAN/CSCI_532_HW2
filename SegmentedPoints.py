@@ -9,7 +9,7 @@ class SegmentedPoints(DataPoints):
         self.slopeSize = slopeSize
         xs = list(range(0, size))
         b = self.filter(xs[1:], breakProp)
-        print("b: {}".format(b))
+        print("Intended Breaks: {}".format(b))
         ys = self.generateYs(xs, [], 0, b)
         super().__init__(pd.DataFrame({'x': xs, 'y': ys}))
 

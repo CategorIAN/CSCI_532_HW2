@@ -7,16 +7,11 @@ class PointPartition:
         self.error = error
 
     def __str__(self):
-        return "Partition: {}\nError: {}".format(tabulate(self.df, headers='keys', tablefmt='psql'), self.error)
+        return "Partition: {}\nError: {}\nLines: {}".format(tabulate(self.df, headers='keys', tablefmt='psql'),
+                                                            self.error, self.df.shape[0])
 
     def fitPoints(self):
-        fittedPts = []
-        for pts in self.df["Partition"]:
-            if pts.n == 1:
-                fittedPts += [pts.df]
-            else:
-                L = pts.bestLine()
-                fittedPts += [L.fitPoints(pts.df['x'])]
-        return pd.concat(fittedPts)
+        fitted = self.df['Partition'].map(lambda pts: pts.df if pts.n == 1 else pts.bestLine().fitPoints(pts.df['x']))
+        return pd.concat(list(fitted))
 
 
